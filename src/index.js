@@ -1,46 +1,36 @@
-var http = require("http");
-var log = require("./modules/mylog");
-var url = require("url");
-var querystring = require("querystring")
-var { countries } = require("countries-list");
+const express = require('express');
+const bodyParser = require('body-parser');
+const dotenv = require('dotenv');
+const mongoose = require('mongoose');
 
-var server = http.createServer(function (request, response) {
-  var parsed = url.parse(request.url);
-  console.log(parsed);
+dotenv.config();
 
-  var pathname = parsed.pathname;
+const routesV1 = require('./routes/v1');
 
-  var query = querystring.parse(parsed.query);
-  console.log(query);
-  
-  if (pathname === "/") {
-    response.writeHead(200, { "Content-Type": "text/html" });
-    response.write("<htm><body><p> Home Page </p></body></html>");
-    response.end();
-  } else if (pathname === "/exit") {
-    response.writeHead(200, { "Content-Type": "text/html" });
-    response.write("<htm><body><p> Bye </p></body></html>");
-    response.end();
-  } else if (pathname === "/info") {
-    var result = log.info(pathname);
-    response.writeHead(200, { "Content-Type": "text/html" });
-    response.write(result);
-    response.end();
-  } else if (pathname === "/country") {
-    response.writeHead(200, { "Content-Type": "application/json" });
-    response.write(JSON.stringify(countries[query.code]));
-    response.end();
-  } else if (pathname === "/error") {
-    var result = log.error(pathname);
-    response.writeHead(200, { "Content-Type": "text/html" });
-    response.write(result);
-    response.end();
-  } else {
-    response.writeHead(404, { "Content-Type": "text/html" });
-    response.write("<htm><body><p> Not Found </p></body></html>");
-    response.end();
-  }
+const app = express();
+
+// parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: false }));
+
+// parse application/json
+app.use(bodyParser.json());
+
+routesV1(app);
+
+mongoose
+  .connect(process.env.MONGO, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log('Conected to MongoDB');
+  })
+  .catch((error) => {
+    console.log('MongoDB error', error);
+  });
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Running on port ${PORT}`);
 });
-
-server.listen(4000);
-console.log("Runnin on port 4000");
